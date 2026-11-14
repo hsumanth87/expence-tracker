@@ -284,7 +284,14 @@ export function initBudgetUI({ onBudgetSaved }) {
     }
 
     const roundedLimit = Math.round(Number(amountVal) * 100) / 100;
-    saveBudgetForMonth(monthVal, roundedLimit);
-    onBudgetSavedCallback?.(monthVal, `Monthly budget for ${formatMonthLabel(monthVal)} saved.`);
+    (async () => {
+      try {
+        await saveBudgetForMonth(monthVal, roundedLimit);
+        onBudgetSavedCallback?.(monthVal, `Monthly budget for ${formatMonthLabel(monthVal)} saved.`);
+      } catch (err) {
+        if (errEl) errEl.textContent = err.message || 'Failed to save monthly budget.';
+        amountInput?.classList.add('is-invalid');
+      }
+    })();
   });
 }

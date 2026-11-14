@@ -60,6 +60,10 @@
             <i data-lucide="wallet" class="nav-icon" aria-hidden="true"></i>
             <span>Budget</span>
           </button>
+          <button type="button" class="nav-link" data-nav="assistant">
+            <i data-lucide="sparkles" class="nav-icon" aria-hidden="true"></i>
+            <span>AI Assistant</span>
+          </button>
         </nav>
 
         <div class="sidebar-footer">
@@ -120,6 +124,22 @@
 
         <!-- Main Content Viewport -->
         <main id="main-content" class="main-content">
+          <!-- Backend Connection / Error Banner -->
+          <div id="backend-error-banner" class="alert-banner is-exceeded is-hidden" role="alert" style="margin-bottom: var(--space-4);">
+            <i data-lucide="alert-octagon" class="alert-icon" aria-hidden="true"></i>
+            <div class="alert-content">
+              <strong id="backend-error-title" class="alert-title">Server Connection Error</strong>
+              <p id="backend-error-message" class="alert-message">
+                Unable to reach the backend server. Please check your connection.
+              </p>
+            </div>
+          </div>
+
+          <!-- Subtle Loading State Indicator -->
+          <div id="backend-loading-bar" class="is-hidden" style="margin-bottom: var(--space-3); font-size: var(--text-xs); color: var(--color-text-muted);" role="status" aria-live="polite">
+            <span>Loading latest records from server...</span>
+          </div>
+
           <!-- VIEW 1: DASHBOARD -->
           <section
             id="view-dashboard"
@@ -558,6 +578,125 @@
                 <p class="empty-title">No expenses recorded for this month</p>
                 <p class="empty-desc">All of your monthly budget remains available.</p>
               </div>
+            </article>
+          </section>
+
+          <!-- VIEW 5: AI SMART SPENDING ASSISTANT -->
+          <section
+            id="view-assistant"
+            class="view-section"
+            data-view="assistant"
+            aria-labelledby="topbar-title"
+          >
+            <!-- Top AI Health & Insights Row -->
+            <div class="charts-grid">
+              <!-- Financial Health Score Card -->
+              <article class="surface-card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Financial Health Assessment</h2>
+                    <p id="assistant-view-subtitle" class="card-subtitle">Real-time intelligence and advice</p>
+                  </div>
+                  <span id="assistant-health-badge" class="status-text is-nominal">Excellent</span>
+                </div>
+
+                <div class="assistant-score-hero">
+                  <div class="assistant-score-display">
+                    <span class="assistant-score-label">Health Score</span>
+                    <p id="assistant-health-score" class="assistant-score-number tabular-nums">--/100</p>
+                  </div>
+                  <p id="assistant-health-desc" class="assistant-score-desc">
+                    Analyzing cash flow balance and budget utilization...
+                  </p>
+                </div>
+
+                <div class="assistant-recs-block">
+                  <h3 class="field-label-quiet" style="margin-bottom: 8px;">Actionable Recommendations</h3>
+                  <ul id="assistant-recommendations-list" class="assistant-recs-list">
+                    <li class="assistant-rec-item">
+                      <i data-lucide="check" class="icon-xs text-income" aria-hidden="true"></i>
+                      <span>Loading smart recommendations...</span>
+                    </li>
+                  </ul>
+                </div>
+              </article>
+
+              <!-- Smart Spending Insights Card -->
+              <article class="surface-card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Proactive Spending Alerts</h2>
+                    <p class="card-subtitle">Threshold checks & category variance</p>
+                  </div>
+                  <i data-lucide="sparkles" class="icon-sm text-income" aria-hidden="true"></i>
+                </div>
+
+                <div id="assistant-insights-list" class="assistant-insights-container">
+                  <p class="empty-desc">Evaluating your transaction patterns...</p>
+                </div>
+              </article>
+            </div>
+
+            <!-- Interactive AI Chat Card -->
+            <article class="surface-card assistant-chat-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Ask Your Spending Assistant</h2>
+                  <p class="card-subtitle">Inquire about budgets, savings tips, or category analysis</p>
+                </div>
+                <div class="assistant-badge-pill">
+                  <span class="assistant-status-dot"></span>
+                  <span>AI Ready</span>
+                </div>
+              </div>
+
+              <!-- Quick Prompt Suggestion Chips -->
+              <div class="assistant-chips-row">
+                <button type="button" class="assistant-chip" data-prompt="How is my budget looking?">
+                  <i data-lucide="wallet" class="icon-xs" aria-hidden="true"></i>
+                  <span>How is my budget looking?</span>
+                </button>
+                <button type="button" class="assistant-chip" data-prompt="What is my biggest expense?">
+                  <i data-lucide="pie-chart" class="icon-xs" aria-hidden="true"></i>
+                  <span>What is my biggest expense?</span>
+                </button>
+                <button type="button" class="assistant-chip" data-prompt="How can I save more money this month?">
+                  <i data-lucide="piggy-bank" class="icon-xs" aria-hidden="true"></i>
+                  <span>How can I save more money?</span>
+                </button>
+                <button type="button" class="assistant-chip" data-prompt="Give me a full summary of my cash flow.">
+                  <i data-lucide="trending-up" class="icon-xs" aria-hidden="true"></i>
+                  <span>Summarize my cash flow</span>
+                </button>
+              </div>
+
+              <!-- Chat Message Stream -->
+              <div id="assistant-chat-messages" class="assistant-chat-stream" role="log" aria-live="polite"></div>
+
+              <!-- Typing Indicator -->
+              <div id="assistant-typing-indicator" class="assistant-typing is-hidden">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span style="margin-left: 6px; font-size: 12px; color: var(--text-muted);">Assistant is thinking...</span>
+              </div>
+
+              <!-- Chat Input Form -->
+              <form id="assistant-chat-form" class="assistant-input-bar">
+                <input
+                  type="text"
+                  id="assistant-chat-input"
+                  class="input-control"
+                  placeholder="Ask a question about your spending, budget, or savings..."
+                  maxlength="200"
+                  autocomplete="off"
+                  required
+                />
+                <button type="submit" id="btn-send-assistant" class="btn-primary">
+                  <i data-lucide="send" class="icon-xs" aria-hidden="true"></i>
+                  <span>Ask</span>
+                </button>
+              </form>
             </article>
           </section>
         </main>

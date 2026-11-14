@@ -2,15 +2,18 @@
  * Main Application Entry & Orchestrator.
  *
  * Manages view navigation, active month state, modal triggers,
- * mobile sidebar drawer, and coordinated view rendering.
+ * mobile sidebar drawer, and coordinated view rendering with the backend API.
  */
 
 import {
+  getApiError,
   getBudgetForMonth,
   getCurrentMonthKey,
+  getIsLoading,
   getTransactions,
+  loadAllData,
+  migrateLocalStorageIfNeeded,
   resetDemoData,
-  seedDemoDataIfNeeded,
 } from './storage.js';
 import {
   formatMonthLabel,
@@ -21,12 +24,14 @@ import {
 import { renderDashboard } from './dashboard.js';
 import { renderAnalytics } from './analytics.js';
 import { initBudgetUI, renderBudgetView } from './budget.js';
+import { initAssistantUI, renderAssistantView } from './assistant.js';
 
 const VIEW_TITLES = {
   dashboard: 'Dashboard',
   transactions: 'Transaction History',
   analytics: 'Expense Analytics',
   budget: 'Budget Management',
+  assistant: 'AI Spending Assistant',
 };
 
 const appState = {
@@ -48,6 +53,30 @@ function showToast(message) {
   }, 3000);
 }
 
+function updateConnectionStatusUI() {
+  const errorBanner = document.getElementById('backend-error-banner');
+  const errorMsgEl = document.getElementById('backend-error-message');
+  const loadingBar = document.getElementById('backend-loading-bar');
+
+  const error = getApiError();
+  const isLoading = getIsLoading();
+
+  if (loadingBar) {
+    loadingBar.classList.toggle('is-hidden', !isLoading);
+  }
+
+  if (errorBanner) {
+    if (error) {
+      errorBanner.classList.remove('is-hidden');
+      if (errorMsgEl) {
+        errorMsgEl.textContent = `Server communication error: ${error}`;
+      }
+    } else {
+      errorBanner.classList.add('is-hidden');
+    }
+  }
+}
+
 function closeMobileSidebar() {
   const sidebar = document.getElementById('app-sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
@@ -67,6 +96,8 @@ function openMobileSidebar() {
 }
 
 function renderActiveView() {
+  updateConnectionStatusUI();
+
   const transactions = getTransactions();
   const budgetLimit = getBudgetForMonth(appState.activeMonth);
 
@@ -88,6 +119,8 @@ function renderActiveView() {
     renderAnalytics(transactions, appState.activeMonth);
   } else if (appState.activeView === 'budget') {
     renderBudgetView(transactions, appState.activeMonth, budgetLimit);
+  } else if (appState.activeView === 'assistant') {
+    renderAssistantView(appState.activeMonth);
   }
 
   if (window.lucide?.createIcons) {
@@ -122,8 +155,20 @@ function navigateTo(viewName) {
   renderActiveView();
 }
 
-function initApp() {
-  seedDemoDataIfNeeded();
+async function initApp() {
+  // Show initial loading indicator
+  const loadingBar = document.getElementById('backend-loading-bar');
+  if (loadingBar) loadingBar.classList.remove('is-hidden');
+
+  // Perform one-time migration if old LocalStorage records exist
+  const migration = await migrateLocalStorageIfNeeded();
+  if (migration.migratedCount > 0) {
+    showToast(`Imported ${migration.migratedCount} existing records into database.`);
+  }
+
+  // Load all initial data from database API
+  await loadAllData();
+  if (loadingBar) loadingBar.classList.add('is-hidden');
 
   // Initialize module UIs
   initTransactionUI({
@@ -140,6 +185,8 @@ function initApp() {
       if (message) showToast(message);
     },
   });
+
+  initAssistantUI();
 
   // Sidebar navigation links
   document.querySelectorAll('[data-nav]').forEach((btn) => {
@@ -174,11 +221,18 @@ function initApp() {
   }
 
   // Reset sample data button
-  document.getElementById('btn-reset-demo')?.addEventListener('click', () => {
-    resetDemoData();
-    appState.activeMonth = getCurrentMonthKey();
-    renderActiveView();
-    showToast('Sample data restored.');
+  document.getElementById('btn-reset-demo')?.addEventListener('click', async () => {
+    if (loadingBar) loadingBar.classList.remove('is-hidden');
+    try {
+      await resetDemoData();
+      appState.activeMonth = getCurrentMonthKey();
+      renderActiveView();
+      showToast('Sample data restored in database.');
+    } catch (err) {
+      showToast('Failed to reset sample data.');
+    } finally {
+      if (loadingBar) loadingBar.classList.add('is-hidden');
+    }
   });
 
   // Mobile sidebar controls

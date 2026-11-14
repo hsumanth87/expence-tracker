@@ -613,15 +613,20 @@ export function initTransactionUI({ onDataChange }) {
     }
 
     const record = createTransactionRecord(rawInput, id || undefined);
-    if (id) {
-      updateTransaction(id, record);
-      onDataChangeCallback?.('Transaction updated.');
-    } else {
-      addTransaction(record);
-      onDataChangeCallback?.('Transaction added.');
-    }
-
-    closeTransactionModal();
+    (async () => {
+      try {
+        if (id) {
+          await updateTransaction(id, record);
+          onDataChangeCallback?.('Transaction updated.');
+        } else {
+          await addTransaction(record);
+          onDataChangeCallback?.('Transaction added.');
+        }
+        closeTransactionModal();
+      } catch (err) {
+        showFormErrors({ amount: err.message || 'Server error occurred while saving.' });
+      }
+    })();
   });
 
   // Modal close / cancel handlers
@@ -638,11 +643,15 @@ export function initTransactionUI({ onDataChange }) {
     if (e.target.id === 'delete-modal') closeDeleteModal();
   });
 
-  document.getElementById('btn-confirm-delete')?.addEventListener('click', () => {
+  document.getElementById('btn-confirm-delete')?.addEventListener('click', async () => {
     if (!pendingDeleteId) return;
-    deleteTransaction(pendingDeleteId);
-    closeDeleteModal();
-    onDataChangeCallback?.('Transaction deleted.');
+    try {
+      await deleteTransaction(pendingDeleteId);
+      closeDeleteModal();
+      onDataChangeCallback?.('Transaction deleted.');
+    } catch (err) {
+      alert(err.message || 'Error deleting transaction from server.');
+    }
   });
 
   // Table row Edit / Delete delegation
